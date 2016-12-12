@@ -25,7 +25,7 @@ class Chain(object):
 
     def conflicts_with(self, other):
         if hasattr(other, 'ndd') and self.ndd==other.ndd:
-            return False
+            return True
         return not set(self.vv).isdisjoint(other.vv)
 
     def __repr__(self):
@@ -73,7 +73,6 @@ class ChainFinder(object):
                 self.visit(ndd, vv + [e.tgt], weight+e.wt)
 
     def find_chains(self):
-        print(self.max_chain)
         if self.max_chain<1: return self.chains
         for i in range(self.ndd_count):
             for edge in self.ndd_edge_lists[i]:
