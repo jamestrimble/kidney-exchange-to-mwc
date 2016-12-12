@@ -9,10 +9,11 @@ class Edge(object):
 class Cycle(object):
     def __init__(self, vv, wt):
         self.vv = vv[:]
+        self.vv_set = set(self.vv)
         self.wt = wt
 
     def conflicts_with(self, other):
-        return not set(self.vv).isdisjoint(other.vv)
+        return not self.vv_set.isdisjoint(other.vv_set)
 
     def __repr__(self):
         return "(" + ",".join(str(v) for v in self.vv) + ")" + str(self.wt)
@@ -21,12 +22,13 @@ class Chain(object):
     def __init__(self, ndd, vv, wt):
         self.ndd = ndd
         self.vv = vv[:]
+        self.vv_set = set(self.vv)
         self.wt = wt
 
     def conflicts_with(self, other):
         if hasattr(other, 'ndd') and self.ndd==other.ndd:
             return True
-        return not set(self.vv).isdisjoint(other.vv)
+        return not self.vv_set.isdisjoint(other.vv_set)
 
     def __repr__(self):
         return str(self.ndd) + "(" + ",".join(str(v) for v in self.vv) + ")" + str(self.wt)
