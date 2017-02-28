@@ -176,10 +176,10 @@ def select_exchange(remaining_exchanges, e_to_p, p_to_e):
     for exch in remaining_exchanges:
         if not has_conflicts(exch, e_to_p, p_to_e):
             return exch, False
-        for p in e_to_p[exch]:
-            if len(p_to_e[p]) > best_list_len:
-                best_list_len = len(p_to_e[p])
-                best = exch
+        listlen = max(len(p_to_e[p]) for p in e_to_p[exch])
+        if listlen > best_list_len:
+            best_list_len = listlen
+            best = exch
     return best, True
 
 def search(incumbent, current, remaining_exchanges, e_to_p, participant_count,
@@ -187,6 +187,8 @@ def search(incumbent, current, remaining_exchanges, e_to_p, participant_count,
     global nodes
     nodes += 1
     
+    if len(current)==0:
+        print "*", len(remaining_exchanges)
 #    print sorted([len(l) for l in p_to_e])
 #    print "Incumbent:", incumbent.total_wt(), "      ", incumbent.get()
 #    print "Bound:", bound(p_to_e, exchanges)
@@ -249,15 +251,22 @@ def solve(lines, max_cycle, max_chain):
     chains = ChainFinder(dpp_edge_lists, ndd_edge_lists, max_chain).find_chains()
 #    print(len(cycles), len(chains), len(cycles)+len(chains))
 
-    exchanges = cycles + chains
-    exchanges.sort(key=lambda exch: (exch.wt, exch.participant_ids(dpp_count)[-1]), reverse=True)
-
-#    for exch in exchanges:
-#        print exch
-
     # Participants are DPPs numbered [0...dpp_count) and
     # NDDs numbered [dpp_count...dpp_count+ndd_count)
     participant_count = dpp_count + ndd_count
+
+    exch_count_per_participant = [ ]
+
+    exchanges = cycles + chains
+    e_to_p_TMP = [exch.participant_ids(dpp_count) for exch in exchanges]
+    exchs_TMP = range(len(exchanges))
+    p_to_e_TMP = create_p_to_e(exchs_TMP, e_to_p_TMP, participant_count)
+    exchanges.sort(key=lambda exch:
+            (exch.wt, sum(len(p_to_e_TMP[p]) for p in exch.participant_ids(dpp_count))), reverse=True)
+    print "Exchange count", len(exchanges)
+
+#    for exch in exchanges:
+#        print exch
 
     # exchange id to participants
     e_to_p = [exch.participant_ids(dpp_count) for exch in exchanges]
