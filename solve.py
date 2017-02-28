@@ -169,13 +169,22 @@ def new_bound(remaining_exchanges, adjmat, exchanges):
     return bound
 
 
+def select_exchange(remaining_exchanges, e_to_p, p_to_e):
+    best = -1
+    best_list_len = len(remaining_exchanges) + 1
+    for exch in remaining_exchanges:
+        for p in e_to_p[exch]:
+            if len(p_to_e[p]) < best_list_len:
+                best_list_len = len(p_to_e[p])
+                best = exch
+    return best
 
 def search(incumbent, current, remaining_exchanges, p_to_e, e_to_p, participant_count,
         exchanges, adjmat):
     global nodes
     nodes += 1
     
-    print sorted([len(l) for l in p_to_e])
+#    print sorted([len(l) for l in p_to_e])
 #    print "Incumbent:", incumbent.total_wt(), "      ", incumbent.get()
 #    print "Bound:", bound(p_to_e, exchanges)
 
@@ -190,20 +199,17 @@ def search(incumbent, current, remaining_exchanges, p_to_e, e_to_p, participant_
     if tot_wt + new_bound(remaining_exchanges, adjmat, exchanges) <= incumbent.total_wt():
         return
 
-    last_exchange = remaining_exchanges[-1]
-#    remaining_exchanges_using_last = remove_dominated(
-#            [e for e in remaining_exchanges if compatible(e, last_exchange, e_to_p)],
-#            p_to_e, e_to_p)
-    remaining_exchanges_using_last = [e for e in remaining_exchanges if compatible(e, last_exchange, e_to_p)]
-    p_to_e_1 = create_p_to_e(remaining_exchanges_using_last, e_to_p, participant_count)
-    search(incumbent, current+[last_exchange], remaining_exchanges_using_last,
+    chosen_exch = select_exchange(remaining_exchanges, e_to_p, p_to_e)
+
+    remaining_exchanges_using_chosen = [e for e in remaining_exchanges if compatible(e, chosen_exch, e_to_p)]
+    p_to_e_1 = create_p_to_e(remaining_exchanges_using_chosen, e_to_p, participant_count)
+    search(incumbent, current+[chosen_exch], remaining_exchanges_using_chosen,
             p_to_e_1, e_to_p, participant_count, exchanges, adjmat)
     
-    if has_conflicts(last_exchange, e_to_p, p_to_e):
-##        remaining_exchanges_without_last = remove_dominated(remaining_exchanges[:-1], p_to_e, e_to_p)
-        remaining_exchanges_without_last = remaining_exchanges[:-1]
-        p_to_e_0 = create_p_to_e(remaining_exchanges_without_last, e_to_p, participant_count)
-        search(incumbent, current, remaining_exchanges_without_last,
+    if has_conflicts(chosen_exch, e_to_p, p_to_e):
+        remaining_exchanges_without_chosen = [exch for exch in remaining_exchanges if exch != chosen_exch]
+        p_to_e_0 = create_p_to_e(remaining_exchanges_without_chosen, e_to_p, participant_count)
+        search(incumbent, current, remaining_exchanges_without_chosen,
                 p_to_e_0, e_to_p, participant_count, exchanges, adjmat)
 
 
