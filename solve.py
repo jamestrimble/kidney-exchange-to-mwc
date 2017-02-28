@@ -100,9 +100,9 @@ def bound(p_to_e, exchanges):
     return sum(exchanges[l[0]].wt if len(l) else 0 for l in p_to_e)
 
 def dominated_by_one(pp, p_to_e, e_to_p, heavier_exch_id):
-    pp_in_heavier_exch = e_to_p[heavier_exch_id]
-    for p in pp_in_heavier_exch:
-        if len(p_to_e[p]) > 1 and p not in pp:
+    for p in e_to_p[heavier_exch_id]:
+#        print len(p_to_e[p]), (p not in pp)
+        if p not in pp and len(p_to_e[p]) > 1:
             return False
 #    print pp, pp_in_heavier_exch
     return True
@@ -153,8 +153,25 @@ def has_conflicts(exchange_id, e_to_p, p_to_e):
             return True
     return False
 
+def new_bound(remaining_exchanges, adjmat, exchanges):
+    bound = 0
+    still_uncoloured = remaining_exchanges
+    while len(still_uncoloured):
+        uncoloured = still_uncoloured
+        still_uncoloured = []
+        coloured = []
+        for exch in uncoloured:
+            if not any(adjmat[exch][coloured_exch] for coloured_exch in coloured):
+                coloured.append(exch)
+            else:
+                still_uncoloured.append(exch)
+        bound += exchanges[coloured[0]].wt
+    return bound
+
+
+
 def search(incumbent, current, remaining_exchanges, p_to_e, e_to_p, participant_count,
-        exchanges):
+        exchanges, adjmat):
     global nodes
     nodes += 1
     
@@ -167,7 +184,10 @@ def search(incumbent, current, remaining_exchanges, p_to_e, e_to_p, participant_
         incumbent.set(current)
         print "New incumbent", incumbent.total_wt()
 
+#    print bound(p_to_e, exchanges), new_bound(remaining_exchanges, e_to_p, exchanges)
     if tot_wt + bound(p_to_e, exchanges) <= incumbent.total_wt():
+        return
+    if tot_wt + new_bound(remaining_exchanges, adjmat, exchanges) <= incumbent.total_wt():
         return
 
     last_exchange = remaining_exchanges[-1]
@@ -177,14 +197,14 @@ def search(incumbent, current, remaining_exchanges, p_to_e, e_to_p, participant_
 ##    remaining_exchanges_using_last = [e for e in remaining_exchanges if compatible(e, last_exchange, e_to_p)]
     p_to_e_1 = create_p_to_e(remaining_exchanges_using_last, e_to_p, participant_count)
     search(incumbent, current+[last_exchange], remaining_exchanges_using_last,
-            p_to_e_1, e_to_p, participant_count, exchanges)
+            p_to_e_1, e_to_p, participant_count, exchanges, adjmat)
     
     if has_conflicts(last_exchange, e_to_p, p_to_e):
         remaining_exchanges_without_last = remove_dominated(remaining_exchanges[:-1], p_to_e, e_to_p)
 ##        remaining_exchanges_without_last = remaining_exchanges[:-1]
         p_to_e_0 = create_p_to_e(remaining_exchanges_without_last, e_to_p, participant_count)
         search(incumbent, current, remaining_exchanges_without_last,
-                p_to_e_0, e_to_p, participant_count, exchanges)
+                p_to_e_0, e_to_p, participant_count, exchanges, adjmat)
 
 
 def solve(lines, max_cycle, max_chain):
@@ -238,7 +258,7 @@ def solve(lines, max_cycle, max_chain):
 ##    incumbent = Incumbent(exchanges)
 ##    current = []
 ##    search(incumbent, current, remaining_exchanges, p_to_e, e_to_p, participant_count,
-##            exchanges)
+##            exchanges, adjmat)
 
     reduced_remaining_exchanges = remove_dominated(remaining_exchanges, p_to_e, e_to_p)
     p_to_e = create_p_to_e(reduced_remaining_exchanges, e_to_p, participant_count)
@@ -247,8 +267,9 @@ def solve(lines, max_cycle, max_chain):
 
     incumbent = Incumbent(exchanges)
     current = []
+    adjmat = [[compatible(i, j, e_to_p) for j in range(len(exchanges))] for i in range(len(exchanges))]
     search(incumbent, current, reduced_remaining_exchanges, p_to_e, e_to_p, participant_count,
-            exchanges)
+            exchanges, adjmat)
 
 
 
