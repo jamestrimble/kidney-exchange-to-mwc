@@ -175,7 +175,7 @@ def search(incumbent, current, remaining_exchanges, p_to_e, e_to_p, participant_
     global nodes
     nodes += 1
     
-#    print sorted([len(l) for l in p_to_e])
+    print sorted([len(l) for l in p_to_e])
 #    print "Incumbent:", incumbent.total_wt(), "      ", incumbent.get()
 #    print "Bound:", bound(p_to_e, exchanges)
 
@@ -191,17 +191,17 @@ def search(incumbent, current, remaining_exchanges, p_to_e, e_to_p, participant_
         return
 
     last_exchange = remaining_exchanges[-1]
-    remaining_exchanges_using_last = remove_dominated(
-            [e for e in remaining_exchanges if compatible(e, last_exchange, e_to_p)],
-            p_to_e, e_to_p)
-##    remaining_exchanges_using_last = [e for e in remaining_exchanges if compatible(e, last_exchange, e_to_p)]
+#    remaining_exchanges_using_last = remove_dominated(
+#            [e for e in remaining_exchanges if compatible(e, last_exchange, e_to_p)],
+#            p_to_e, e_to_p)
+    remaining_exchanges_using_last = [e for e in remaining_exchanges if compatible(e, last_exchange, e_to_p)]
     p_to_e_1 = create_p_to_e(remaining_exchanges_using_last, e_to_p, participant_count)
     search(incumbent, current+[last_exchange], remaining_exchanges_using_last,
             p_to_e_1, e_to_p, participant_count, exchanges, adjmat)
     
     if has_conflicts(last_exchange, e_to_p, p_to_e):
-        remaining_exchanges_without_last = remove_dominated(remaining_exchanges[:-1], p_to_e, e_to_p)
-##        remaining_exchanges_without_last = remaining_exchanges[:-1]
+##        remaining_exchanges_without_last = remove_dominated(remaining_exchanges[:-1], p_to_e, e_to_p)
+        remaining_exchanges_without_last = remaining_exchanges[:-1]
         p_to_e_0 = create_p_to_e(remaining_exchanges_without_last, e_to_p, participant_count)
         search(incumbent, current, remaining_exchanges_without_last,
                 p_to_e_0, e_to_p, participant_count, exchanges, adjmat)
@@ -268,6 +268,7 @@ def solve(lines, max_cycle, max_chain):
     incumbent = Incumbent(exchanges)
     current = []
     adjmat = [[compatible(i, j, e_to_p) for j in range(len(exchanges))] for i in range(len(exchanges))]
+    print "New bound:", new_bound(reduced_remaining_exchanges, adjmat, exchanges)
     search(incumbent, current, reduced_remaining_exchanges, p_to_e, e_to_p, participant_count,
             exchanges, adjmat)
 
