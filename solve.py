@@ -161,7 +161,8 @@ def new_bound(remaining_exchanges, adjmat, exchanges):
         still_uncoloured = []
         coloured = []
         for exch in uncoloured:
-            if not any(adjmat[exch][coloured_exch] for coloured_exch in coloured):
+            adjrow = adjmat[exch]
+            if not any(adjrow[coloured_exch] for coloured_exch in coloured):
                 coloured.append(exch)
             else:
                 still_uncoloured.append(exch)
@@ -173,11 +174,13 @@ def select_exchange(remaining_exchanges, e_to_p, p_to_e):
     best = -1
     best_list_len = -1#len(remaining_exchanges) + 1
     for exch in remaining_exchanges:
+        if not has_conflicts(exch, e_to_p, p_to_e):
+            return exch, False
         for p in e_to_p[exch]:
             if len(p_to_e[p]) > best_list_len:
                 best_list_len = len(p_to_e[p])
                 best = exch
-    return best
+    return best, True
 
 def search(incumbent, current, remaining_exchanges, p_to_e, e_to_p, participant_count,
         exchanges, adjmat):
@@ -189,29 +192,32 @@ def search(incumbent, current, remaining_exchanges, p_to_e, e_to_p, participant_
 #    print "Bound:", bound(p_to_e, exchanges)
 
     tot_wt = total_wt(current, exchanges)
+
     if tot_wt > incumbent.total_wt():
         incumbent.set(current)
         print "New incumbent", incumbent.total_wt()
 
-#    print bound(p_to_e, exchanges), new_bound(remaining_exchanges, e_to_p, exchanges)
+#    print bound(p_to_e, exchanges), new_bound(remaining_exchanges, adjmat, exchanges)
 #    if tot_wt + bound(p_to_e, exchanges) <= incumbent.total_wt():
 #        return
     if tot_wt + new_bound(remaining_exchanges, adjmat, exchanges) <= incumbent.total_wt():
         return
 
-    chosen_exch = select_exchange(remaining_exchanges, e_to_p, p_to_e)
 
-    remaining_exchanges_using_chosen = [e for e in remaining_exchanges if compatible(e, chosen_exch, e_to_p)]
-    remaining_exchanges_using_chosen = remove_dominated(remaining_exchanges_using_chosen, p_to_e, e_to_p)
+    chosen_exch, has_conf = select_exchange(remaining_exchanges, e_to_p, p_to_e)
+
+    remaining_exchanges_using_chosen = [e for e in remaining_exchanges if adjmat[e][chosen_exch]]
+#    remaining_exchanges_using_chosen = remove_dominated(remaining_exchanges_using_chosen, p_to_e, e_to_p)
     p_to_e_1 = create_p_to_e(remaining_exchanges_using_chosen, e_to_p, participant_count)
     search(incumbent, current+[chosen_exch], remaining_exchanges_using_chosen,
             p_to_e_1, e_to_p, participant_count, exchanges, adjmat)
     
-    remaining_exchanges_without_chosen = [exch for exch in remaining_exchanges if exch != chosen_exch]
-#    remaining_exchanges_without_chosen = remove_dominated(remaining_exchanges_without_chosen, p_to_e, e_to_p)
-    p_to_e_0 = create_p_to_e(remaining_exchanges_without_chosen, e_to_p, participant_count)
-    search(incumbent, current, remaining_exchanges_without_chosen,
-            p_to_e_0, e_to_p, participant_count, exchanges, adjmat)
+    if has_conf:
+        remaining_exchanges_without_chosen = [exch for exch in remaining_exchanges if exch != chosen_exch]
+#        remaining_exchanges_without_chosen = remove_dominated(remaining_exchanges_without_chosen, p_to_e, e_to_p)
+        p_to_e_0 = create_p_to_e(remaining_exchanges_without_chosen, e_to_p, participant_count)
+        search(incumbent, current, remaining_exchanges_without_chosen,
+                p_to_e_0, e_to_p, participant_count, exchanges, adjmat)
 
 
 def solve(lines, max_cycle, max_chain):
@@ -241,8 +247,8 @@ def solve(lines, max_cycle, max_chain):
     exchanges = cycles + chains
     exchanges.sort(key=lambda exch: exch.wt, reverse=True)
 
-    for exch in exchanges:
-        print exch
+#    for exch in exchanges:
+#        print exch
 
     # Participants are DPPs numbered [0...dpp_count) and
     # NDDs numbered [dpp_count...dpp_count+ndd_count)
@@ -256,11 +262,11 @@ def solve(lines, max_cycle, max_chain):
     # participant id to exchanges
     p_to_e = create_p_to_e(remaining_exchanges, e_to_p, participant_count)
 
-    print e_to_p
-    print p_to_e
-
-    print sorted([len(l) for l in p_to_e])
-    print "Bound:", bound(p_to_e, exchanges)
+#    print e_to_p
+#    print p_to_e
+#
+#    print sorted([len(l) for l in p_to_e])
+#    print "Bound:", bound(p_to_e, exchanges)
 
 ##    incumbent = Incumbent(exchanges)
 ##    current = []
@@ -269,8 +275,8 @@ def solve(lines, max_cycle, max_chain):
 
     reduced_remaining_exchanges = remove_dominated(remaining_exchanges, p_to_e, e_to_p)
     p_to_e = create_p_to_e(reduced_remaining_exchanges, e_to_p, participant_count)
-    print sorted([len(l) for l in p_to_e])
-    print "Bound:", bound(p_to_e, exchanges)
+#    print sorted([len(l) for l in p_to_e])
+#    print "Bound:", bound(p_to_e, exchanges)
 
     incumbent = Incumbent(exchanges)
     current = []
@@ -279,10 +285,22 @@ def solve(lines, max_cycle, max_chain):
     search(incumbent, current, reduced_remaining_exchanges, p_to_e, e_to_p, participant_count,
             exchanges, adjmat)
 
-
-
     print "Incumbent", incumbent.total_wt(), incumbent.get()
     print "Nodes", nodes
+#    g_edges = []
+#    for x in range(len(reduced_remaining_exchanges) - 1):
+#        i = reduced_remaining_exchanges[x]
+#        for y in range(i+1, len(reduced_remaining_exchanges)):
+#            j = reduced_remaining_exchanges[y]
+#            if not exchanges[i].conflicts_with(exchanges[j]):
+#                g_edges.append((i, j))
+#
+#    print("p edge {} {}".format(len(exchanges), len(g_edges)))
+#    for i, exch in enumerate(exchanges):
+#        print("n {} {}".format(i+1, exch.wt))
+#    for edge in g_edges:
+#        print("e {} {}".format(edge[0]+1, edge[1]+1))
+
 if __name__=="__main__":
     max_cycle = int(sys.argv[1])
     max_chain = int(sys.argv[2])
