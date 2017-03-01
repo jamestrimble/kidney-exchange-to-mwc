@@ -176,7 +176,7 @@ def select_exchange(remaining_exchanges, e_to_p, p_to_e):
     for exch in remaining_exchanges:
         if not has_conflicts(exch, e_to_p, p_to_e):
             return exch, False
-        listlen = max(len(p_to_e[p]) for p in e_to_p[exch])
+        listlen = sum(len(p_to_e[p]) for p in e_to_p[exch])
         if listlen > best_list_len:
             best_list_len = listlen
             best = exch
