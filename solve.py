@@ -183,12 +183,12 @@ def select_exchange(remaining_exchanges, e_to_p, p_to_e):
     return best, True
 
 def search(incumbent, current, remaining_exchanges, e_to_p, participant_count,
-        exchanges, adjmat, lb_on_bound, ub_on_bound):
+        exchanges, adjmat, ub_on_bound):
     global nodes
     nodes += 1
     
     if len(current)==0:
-        print "*", len(remaining_exchanges)
+        print "*", len(remaining_exchanges), ub_on_bound
 #    print sorted([len(l) for l in p_to_e])
 #    print "Incumbent:", incumbent.total_wt(), "      ", incumbent.get()
 #    print "Bound:", bound(p_to_e, exchanges)
@@ -204,10 +204,7 @@ def search(incumbent, current, remaining_exchanges, e_to_p, participant_count,
 #    print bound(p_to_e, exchanges), new_bound(remaining_exchanges, adjmat, exchanges)
 #    if tot_wt + bound(p_to_e, exchanges) <= incumbent.total_wt():
 #        return
-    if len(remaining_exchanges)==0 or lb_on_bound<=incumbent_wt:
-        bound = min(ub_on_bound, tot_wt + new_bound(remaining_exchanges, adjmat, exchanges))
-    else:
-        bound = ub_on_bound
+    bound = min(ub_on_bound, tot_wt + new_bound(remaining_exchanges, adjmat, exchanges))
 
     if bound <= incumbent_wt:
         return
@@ -218,13 +215,13 @@ def search(incumbent, current, remaining_exchanges, e_to_p, participant_count,
     remaining_exchanges_using_chosen = [e for e in remaining_exchanges if adjmat[e][chosen_exch]]
 #    remaining_exchanges_using_chosen = remove_dominated(remaining_exchanges_using_chosen, p_to_e, e_to_p, adjmat)
     search(incumbent, current+[chosen_exch], remaining_exchanges_using_chosen,
-            e_to_p, participant_count, exchanges, adjmat, 0, bound)
+            e_to_p, participant_count, exchanges, adjmat, bound)
     
     if has_conf:
         remaining_exchanges_without_chosen = [exch for exch in remaining_exchanges if exch != chosen_exch]
 #        remaining_exchanges_without_chosen = remove_dominated(remaining_exchanges_without_chosen, p_to_e, e_to_p, adjmat)
         search(incumbent, current, remaining_exchanges_without_chosen,
-                e_to_p, participant_count, exchanges, adjmat, bound - exchanges[chosen_exch].wt, bound)
+                e_to_p, participant_count, exchanges, adjmat, bound)
 
 
 def solve(lines, max_cycle, max_chain):
@@ -298,7 +295,7 @@ def solve(lines, max_cycle, max_chain):
     current = []
     print "New bound:", new_bound(reduced_remaining_exchanges, adjmat, exchanges)
     search(incumbent, current, reduced_remaining_exchanges, e_to_p, participant_count,
-            exchanges, adjmat, 0, 999999999)
+            exchanges, adjmat, 999999999)
 
     print "Incumbent", incumbent.total_wt(), incumbent.get()
     print "Nodes", nodes
